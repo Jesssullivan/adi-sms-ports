@@ -27,7 +27,7 @@ jobs:
       - name: Reach the adi-sms input
         env:
           KEY: ${{ secrets.ADI_SMS_DEPLOY_KEY }}
-        run: | # as in ci.yml, while the core is private
+        run: | # as in ci.yml: the core input is fetched over SSH with its read-only deploy key
           [ -n "$KEY" ] || exit 0
           install -d -m 700 ~/.ssh
           (umask 077; printf '%s\n' "$KEY" > ~/.ssh/adi-sms)
