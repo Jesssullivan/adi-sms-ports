@@ -53,9 +53,12 @@ conform:
     port=$((20000 + RANDOM % 20000)); q=127.0.0.1:$port; cli() { valkey-cli -p "$port" "$@"; }
     valkey-server --port "$port" --bind 127.0.0.1 --save "" >"$err" 2>&1 &
     until cli ping >/dev/null 2>&1; do sleep 0.05; done
-    pids=()
+    pids=(); rsbin=$(out sms-rs)/bin/sms-rs
     for name in py0 py1; do "$py/bin/sms" consume --queue "$q" --name "$name" $cfg >/dev/null 2>>"$err" & pids+=($!); done
-    "$(out sms-rs)/bin/sms-rs" consume --queue "$q" --name rs0 $cfg >/dev/null 2>>"$err" & pids+=($!)
+    "$rsbin" consume --queue "$q" --name rs0 $cfg >/dev/null 2>>"$err" & pids+=($!)
+    # Produce only once all six senders have joined the group, or the Python ones can take every message first
+    joined() { cli xinfo consumers sms senders 2>/dev/null | grep -cxE '(py0|py1|rs0)-[01]' || true; }
+    for _ in {1..600}; do [[ $(joined) == 6 ]] && break; sleep 0.05; done
     "$py/bin/sms" produce --queue "$q" $cfg 2>>"$err" & pids+=($!)
     final=$(timeout 300 "$py/bin/sms" monitor --queue "$q" $cfg 2>>"$err" | tail -n 1) && st=0 || st=$?
     cli set stop 1 >/dev/null # the monitor set it at done == N; a failed monitor must not strand the consumers
