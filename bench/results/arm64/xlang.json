@@ -1,0 +1,68 @@
+{
+ "schema": "adi-sms-bench-v1",
+ "commit": "5fc701af383e",
+ "machine": {
+  "label": "arm64, Apple Silicon (quiet host)",
+  "cpu": "arm",
+  "cores": 10,
+  "load": 1.9,
+  "os": "Darwin arm64",
+  "python": "3.14.7",
+  "ghc": "9.10.3",
+  "rustc": "1.98.1"
+ },
+ "config": {
+  "ceiling": "--n 100000 --mean-us 0 --backoff-us 0",
+  "realistic": "--n 20000 --senders 1000 --capacity 1000 --mean-us 100000"
+ },
+ "rows": [
+  {
+   "config": "ceiling",
+   "runner": "py",
+   "wall_s": 1.1608580002,
+   "sd_s": 0.0030911555736780226,
+   "msg_s": 94472.17,
+   "rss_mib": 43.8
+  },
+  {
+   "config": "ceiling",
+   "runner": "rs",
+   "wall_s": 0.0910421086,
+   "sd_s": 0.004015407318466186,
+   "msg_s": 1195075.1,
+   "rss_mib": 2.2
+  },
+  {
+   "config": "ceiling",
+   "runner": "hs",
+   "wall_s": 0.8268355250000001,
+   "sd_s": 0.05384493932376324,
+   "msg_s": 90577.49,
+   "rss_mib": 59.9
+  },
+  {
+   "config": "realistic",
+   "runner": "py",
+   "wall_s": 3.1600129082,
+   "sd_s": 0.001927139431721606,
+   "msg_s": 6672.36,
+   "rss_mib": 46.3
+  },
+  {
+   "config": "realistic",
+   "runner": "rs",
+   "wall_s": 3.2312644332000007,
+   "sd_s": 0.07003694821006762,
+   "msg_s": 6366.78,
+   "rss_mib": 3.1
+  },
+  {
+   "config": "realistic",
+   "runner": "hs",
+   "wall_s": 3.1076544668,
+   "sd_s": 0.030045014296064383,
+   "msg_s": 6602.48,
+   "rss_mib": 97.2
+  }
+ ]
+}

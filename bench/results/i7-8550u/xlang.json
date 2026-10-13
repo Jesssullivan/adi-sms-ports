@@ -1,0 +1,68 @@
+{
+ "schema": "adi-sms-bench-v1",
+ "commit": "5fc701af383e",
+ "machine": {
+  "label": "x86_64, 8 cores (quiet host)",
+  "cpu": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+  "cores": 8,
+  "load": 1.2,
+  "os": "Linux x86_64",
+  "python": "3.14.7",
+  "ghc": "9.10.3",
+  "rustc": "1.98.1"
+ },
+ "config": {
+  "ceiling": "--n 100000 --mean-us 0 --backoff-us 0",
+  "realistic": "--n 20000 --senders 1000 --capacity 1000 --mean-us 100000"
+ },
+ "rows": [
+  {
+   "config": "ceiling",
+   "runner": "py",
+   "wall_s": 2.5335017991999997,
+   "sd_s": 0.04948205645006713,
+   "msg_s": 37921.69,
+   "rss_mib": 43.6
+  },
+  {
+   "config": "ceiling",
+   "runner": "rs",
+   "wall_s": 0.032823242,
+   "sd_s": 0.003600733119498098,
+   "msg_s": 3737093.95,
+   "rss_mib": 18.3
+  },
+  {
+   "config": "ceiling",
+   "runner": "hs",
+   "wall_s": 2.3910601296,
+   "sd_s": 0.4366839918488623,
+   "msg_s": 46833.81,
+   "rss_mib": 34.6
+  },
+  {
+   "config": "realistic",
+   "runner": "py",
+   "wall_s": 3.2745201116000002,
+   "sd_s": 0.00534723765498721,
+   "msg_s": 6606.11,
+   "rss_mib": 45.9
+  },
+  {
+   "config": "realistic",
+   "runner": "rs",
+   "wall_s": 3.016320895,
+   "sd_s": 0.0029521352544343692,
+   "msg_s": 6643.5,
+   "rss_mib": 18.3
+  },
+  {
+   "config": "realistic",
+   "runner": "hs",
+   "wall_s": 3.0509227711999998,
+   "sd_s": 0.02068358261938547,
+   "msg_s": 6603.42,
+   "rss_mib": 61.8
+  }
+ ]
+}

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Textbook SMS sim</title>
+<style>
+  :root { --bg: #fafaf7; --fg: #1d1d1b; --muted: #6b6b66; --line: #d8d8d2; --accent: #2f6fb0; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161615; --fg: #e8e8e3; --muted: #9a9a93; --line: #34342f; --accent: #7fb0e6; } }
+  body { margin: 0 auto; max-width: 44rem; padding: 1.5rem 16px; background: var(--bg); color: var(--fg);
+         font: 15px/1.5 system-ui, sans-serif; }
+  h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+  p { color: var(--muted); margin: 0 0 1rem; }
+  form { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+  label { display: grid; gap: .25rem; font-size: .85rem; color: var(--muted); }
+  input { font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: .2rem .4rem; width: 100%; min-width: 0; box-sizing: border-box; }
+  input[type=range] { padding: 0; accent-color: var(--accent); }
+  button { font: inherit; padding: .4rem 1rem; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent); color: var(--bg); cursor: pointer; align-self: end; }
+  output { display: block; font: 14px/1.6 ui-monospace, monospace; border-top: 1px solid var(--line); padding-top: .75rem; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<h1>The textbook SMS sim, in the browser</h1>
+<p>Each sender owns a TinyMT32 stream. It waits Exp(mean) per attempt, then learns the ack: ok with probability 1 &minus; p.
+A failed ack backs off 10 ms &times; 2<sup>j&minus;1</sup> and retries, up to A attempts. M and the mean apply live.</p>
+<form id="f" onsubmit="event.preventDefault(); start()">
+  <label>N messages <input id="n" type="number" min="0" value="500"></label>
+  <label>C queue bound <input id="c" type="number" min="1" value="10"></label>
+  <label>p failure <input id="p" type="number" min="0" max="1" step="0.05" value="0.1"></label>
+  <label>A attempts <input id="a" type="number" min="1" value="3"></label>
+  <label>seed <input id="seed" type="number" min="0" value="1"></label>
+  <label><span>M senders: <span id="mv"></span></span><input id="m" type="range" min="1" max="50" value="10"></label>
+  <label><span>mean: <span id="meanv"></span> ms</span><input id="mean" type="range" min="1" max="500" value="100"></label>
+  <button>Start</button>
+</form>
+<output id="out">press Start</output>
+<script src="tinymt.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));  // a hidden tab clamps timers to about 1 s
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .";
+let run = 0;  // Start bumps it; loops of an older run see the change and stop
+
+function start() {
+  const id = ++run, live = () => id === run, t0 = performance.now();
+  const n = +$("n").value, cap = +$("c").value, p = +$("p").value, attempts = +$("a").value, seed = +$("seed").value;
+  const q = [], rngs = [], active = new Set();
+  const st = { made: 0, sent: 0, failed: 0, attempts: 0, busy: 0, flight: 0 };
+
+  async function producer() {  // stream 0, as in sms.py
+    const rng = new TinyMT.TinyMT32(seed * 1024);
+    for (let i = 0; i < n && live(); i++) {
+      let body = "", r = 0;  // 0..100 symbols, one per byte of each 32-bit draw, as in sms.py
+      for (let j = 0, len = rng.genrandInt32() % 101; j < len; j++) {
+        if (j % 4 === 0) r = rng.genrandInt32();
+        body += ALPHABET[(r >>> (8 * (j % 4))) & 63];
+      }
+      while (q.length >= cap && live()) await sleep(5);  // backpressure: wait while the queue holds C
+      q.push({ id: i, body });
+      st.made++;
+    }
+  }
+
+  async function sender(k) {  // no sentinel here: a sender stops when the producer is done and the queue is empty
+    const rng = (rngs[k] ??= new TinyMT.TinyMT32(seed * 1024 + k + 1));  // kept when M shrinks and grows again
+    while (live() && k < +$("m").value) {
+      const msg = q.shift();
+      if (!msg) { if (st.made === n) break; await sleep(5); continue; }
+      const t = performance.now();
+      let ok = false;
+      st.flight++;
+      for (let j = 0; j < attempts && !ok; j++) {
+        if (j) await sleep(10 * 2 ** (j - 1));
+        await sleep(-$("mean").value * Math.log(1 - rng.genrandFloat()));  // in flight for Exp(mean) ms
+        st.attempts++;
+        ok = rng.genrandFloat() >= p;  // the ack: known only after the wait
+      }
+      st.flight--;
+      ok ? st.sent++ : st.failed++;
+      st.busy += performance.now() - t;
+    }
+    active.delete(k);
+  }
+
+  function spawn() {  // start a sender for each index under M that is not running
+    for (let k = 0; k < +$("m").value; k++) if (!active.has(k)) { active.add(k); sender(k); }
+  }
+
+  function monitor() {
+    const done = st.sent + st.failed;
+    $("out").textContent = `t=${((performance.now() - t0) / 1000).toFixed(1)}s sent=${st.sent} failed=${st.failed}` +
+      ` attempts=${st.attempts} queued=${q.length} in_flight=${st.flight} senders=${active.size}` +
+      ` mean_ms=${(st.busy / Math.max(1, done)).toFixed(1)}${done === n ? " done" : ""}`;
+    if (live() && done < n) setTimeout(monitor, 250);
+  }
+
+  $("m").oninput = () => { if (live()) spawn(); };  // a larger M starts senders now; a smaller M stops them
+  producer();
+  spawn();
+  monitor();
+}
+
+for (const [id, v] of [["m", "mv"], ["mean", "meanv"]]) {
+  $(v).textContent = $(id).value;
+  $(id).addEventListener("input", () => { $(v).textContent = $(id).value; });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+{
+ "schema": "adi-sms-bench-v1",
+ "commit": "db9a1fb8fbe6",
+ "adi_sms": "5242cd0976bf",
+ "machine": {
+  "label": "x86_64, 2x Xeon E5-2630 v3, 32 threads (shared host)",
+  "cpu": "Intel(R) Xeon(R) CPU E5-2630 v3 @ 2.40GHz",
+  "cores": 32,
+  "load": 8.2,
+  "os": "Linux x86_64",
+  "python": "3.15.0",
+  "ghc": "9.10.3",
+  "rustc": "1.98.1"
+ },
+ "config": {
+  "ceiling": "--n 100000 --mean-us 0 --backoff-us 0",
+  "realistic": "--n 20000 --senders 1000 --capacity 1000 --mean-us 100000"
+ },
+ "rows": [
+  {
+   "config": "ceiling",
+   "runner": "py",
+   "wall_s": 12.8171918816,
+   "min_s": 12.569624398,
+   "sd_s": 0.29248996913743075,
+   "msg_s": 8004.41,
+   "rss_mib": 21.8
+  },
+  {
+   "config": "ceiling",
+   "runner": "rs",
+   "wall_s": 0.10664408060000001,
+   "min_s": 0.092570991,
+   "sd_s": 0.008290565690029379,
+   "msg_s": 1023140.33,
+   "rss_mib": 18.0
+  },
+  {
+   "config": "ceiling",
+   "runner": "hs",
+   "wall_s": 0.6968611704000001,
+   "min_s": 0.6850179270000001,
+   "sd_s": 0.008038962946952458,
+   "msg_s": 154699.26,
+   "rss_mib": 18.0
+  },
+  {
+   "config": "ceiling",
+   "runner": "tb",
+   "wall_s": 7.489997408399999,
+   "min_s": 7.115707418,
+   "sd_s": 0.5265337857985136,
+   "msg_s": 13759.36,
+   "rss_mib": 18.0
+  },
+  {
+   "config": "realistic",
+   "runner": "py",
+   "wall_s": 4.0299385066,
+   "min_s": 3.842074273,
+   "sd_s": 0.12817983376074082,
+   "msg_s": 5400.69,
+   "rss_mib": 41.3
+  },
+  {
+   "config": "realistic",
+   "runner": "rs",
+   "wall_s": 2.7005974458,
+   "min_s": 2.69905157,
+   "sd_s": 0.0017136902202970047,
+   "msg_s": 7426.18,
+   "rss_mib": 18.0
+  },
+  {
+   "config": "realistic",
+   "runner": "hs",
+   "wall_s": 2.7189184816000003,
+   "min_s": 2.714333398,
+   "sd_s": 0.005825417610238953,
+   "msg_s": 7397.18,
+   "rss_mib": 52.8
+  },
+  {
+   "config": "realistic",
+   "runner": "tb",
+   "wall_s": 2.9411640186000003,
+   "min_s": 2.90743372,
+   "sd_s": 0.021938931671616875,
+   "msg_s": 6905.26,
+   "rss_mib": 37.3
+  }
+ ]
+}

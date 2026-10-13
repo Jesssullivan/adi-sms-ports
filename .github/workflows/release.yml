@@ -1,0 +1,57 @@
+name: release
+
+# A pushed tag v* (or a manual run naming an existing tag) builds the static binaries, checks them against
+# the core's `sms fold` and uploads them with SHA256SUMS to the GitHub Release for the tag.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: an existing tag, for example v1.0.0
+        required: true
+
+permissions:
+  contents: write # gh release create
+
+jobs:
+  release:
+    runs-on: [self-hosted, nix, linux] # the owner's x86_64 runners, as in ci.yml; a tag is never a fork's
+    timeout-minutes: 90
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+      - name: Reach the adi-sms input
+        env:
+          KEY: ${{ secrets.ADI_SMS_DEPLOY_KEY }}
+        run: | # as in ci.yml, while the core is private
+          [ -n "$KEY" ] || exit 0
+          install -d -m 700 ~/.ssh
+          (umask 077; printf '%s\n' "$KEY" > ~/.ssh/adi-sms)
+          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' >> ~/.ssh/known_hosts
+          git config --global core.sshCommand 'ssh -i ~/.ssh/adi-sms -o IdentitiesOnly=yes -o User=git'
+          git config --global url.ssh://github.com/Jesssullivan/adi-sms.insteadOf https://github.com/Jesssullivan/adi-sms
+      # x86_64 only: cross-building rustc for aarch64-musl needs more memory than these runners have. The flake's
+      # sms-rs-aarch64-static output builds on a larger machine and is attached to the release with its checksum.
+      - name: Build the static binaries
+        run: |
+          out() { nix build -L --no-link --print-out-paths ".#$1"; }
+          mkdir dist
+          install -m755 "$(out sms-rs-static)/bin/sms-rs" dist/sms-rs-x86_64-linux
+          install -m755 "$(out sms-hs-static)/bin/sms-hs" dist/sms-hs-x86_64-linux
+          ls -l dist
+      - name: Check them against sms fold
+        run: |
+          SMS="$(nix build --no-link --print-out-paths .#sms)/bin/sms"
+          export SMS
+          nix develop --command bench/run.sh dist/sms-rs-x86_64-linux dist/sms-hs-x86_64-linux
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS)
+          nix shell --inputs-from . nixpkgs#gh --command \
+            gh release create "$TAG" dist/* --verify-tag --title "$TAG" --generate-notes

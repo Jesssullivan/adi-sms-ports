@@ -1,0 +1,11 @@
+# One `sms run` config per line; `just conform` compares every runner's Summary with `sms fold`.
+# Retries with backoff and M = C; every attempt fails with C = 1 and zero waits; M far above C, no failures.
+--n 5000 --senders 64 --capacity 64 --mean-us 300 --fail-ppm 250000 --attempts 3 --backoff-us 200 --interval-ms 1000 --seed 42
+--n 2000 --senders 8 --capacity 1 --mean-us 0 --fail-ppm 1000000 --attempts 4 --backoff-us 0 --interval-ms 1000 --seed 7
+--n 3000 --senders 1000 --capacity 16 --mean-us 1000 --fail-ppm 0 --attempts 1 --backoff-us 0 --interval-ms 1000 --seed 1
+# Edges: no messages; the most attempts, all failing; the largest seed with M = 1000.
+--n 0 --senders 1 --capacity 1 --mean-us 0 --fail-ppm 0 --attempts 1 --backoff-us 0 --interval-ms 1000 --seed 0
+--n 1000 --senders 16 --capacity 16 --mean-us 0 --fail-ppm 1000000 --attempts 10 --backoff-us 0 --interval-ms 1000 --seed 3
+--n 5000 --senders 1000 --capacity 100 --mean-us 2000 --fail-ppm 100000 --attempts 3 --backoff-us 500 --interval-ms 1000 --seed 9007199254740991
+# The defaults (N = 1000, M = 10, mu = 100 ms, one attempt): about 10 s per runner, the fold's pinned answer.
+--seed 1
